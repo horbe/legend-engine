@@ -1,6 +1,6 @@
 {
   "name": "core_relational_memsql",
-  "pattern": "(meta::relational::functions::sqlQueryToString::memsql|meta::relational::tests::sqlQueryToString::memsql|meta::relational::memsql::tests)(::.*)?",
+  "pattern": "(meta::relational::functions::sqlQueryToString::memsql|meta::relational::tests::sqlQueryToString::memsql|meta::relational::memsql::tests|meta::pure::executionPlan::tests|meta::relational::tests)(::.*)?",
   "dependencies": [
     "platform",
     "platform_functions",
