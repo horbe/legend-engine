@@ -1,0 +1,102 @@
+// Copyright 2020 Goldman Sachs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package org.finos.legend.engine.plan.execution.validation;
+
+import org.eclipse.collections.api.RichIterable;
+import org.eclipse.collections.api.list.MutableList;
+import org.eclipse.collections.impl.utility.LazyIterate;
+import org.finos.legend.engine.plan.execution.nodes.state.ExecutionState;
+import org.finos.legend.engine.plan.execution.result.ConstantResult;
+import org.finos.legend.engine.plan.execution.result.Result;
+import org.finos.legend.engine.protocol.pure.v1.model.executionPlan.nodes.FunctionParametersValidationNode;
+import org.finos.legend.engine.protocol.pure.v1.model.executionPlan.nodes.ParameterValidationContext;
+import org.finos.legend.engine.protocol.pure.m3.multiplicity.Multiplicity;
+import org.finos.legend.engine.protocol.pure.m3.valuespecification.constant.PackageableType;
+import org.finos.legend.engine.protocol.pure.m3.valuespecification.Variable;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class FunctionParametersParametersValidation
+{
+
+    public static void validate(RichIterable<Variable> functionParameters, List<ParameterValidationContext> parameterValidationContext, ExecutionState executionState, FunctionParametersValidationNode functionParametersValidationNode)
+    {
+        Map<String, Result> providedParameterValues = executionState.getResults();
+        validateNoMissingMandatoryParamaters(functionParameters, providedParameterValues);
+        validateParameterValues(functionParameters, parameterValidationContext, providedParameterValues);
+        FunctionParametersNormalizer.normalizeParameters(functionParameters,parameterValidationContext, executionState, functionParametersValidationNode);
+        FunctionParameterProcessor.processParameters(functionParameters, parameterValidationContext, executionState);
+    }
+
+    private static void validateNoMissingMandatoryParamaters(RichIterable<Variable> externalParameters, Map<String, Result> providedParameterValues)
+    {
+        RichIterable<Variable> missingExternalParameters = externalParameters.select(p -> p.multiplicity.lowerBound > 0 && !providedParameterValues.containsKey(p.name));
+
+        if (!missingExternalParameters.isEmpty())
+        {
+            throw new IllegalArgumentException("Missing external parameter(s): " + missingExternalParameters.collect(a -> a.name + ":" + ((PackageableType) a.genericType.rawType).fullPath + "[" + renderMultiplicity(a.multiplicity) + "]").makeString(","));
+        }
+    }
+
+    private static String renderMultiplicity(Multiplicity multiplicity)
+    {
+        return multiplicity.lowerBound == 0 && multiplicity.getUpperBoundInt() == Integer.MAX_VALUE ? "*" : multiplicity.lowerBound == multiplicity.getUpperBoundInt() ? String.valueOf(multiplicity.lowerBound) : multiplicity.lowerBound + ".." + (multiplicity.getUpperBoundInt() == Integer.MAX_VALUE ? "*" : multiplicity.getUpperBoundInt());
+    }
+
+    private static void validateParameterValues(RichIterable<Variable> externalParameters, List<ParameterValidationContext> parameterValidationContext, Map<String, Result> providedParameterValues)
+    {
+        MutableList<ValidationResult> inValidProvidedParameters = externalParameters
+                .asLazy()
+                .select(ep -> providedParameterValues.containsKey(ep.name))
+                .collect(v -> FunctionParametersParametersValidation.validate(v, parameterValidationContext, ((ConstantResult) providedParameterValues.get(v.name)).getValue()))
+                .reject(ValidationResult::isValid)
+                .toList();
+        if (!inValidProvidedParameters.isEmpty())
+        {
+            throw new IllegalArgumentException(inValidProvidedParameters.makeString("Invalid provided parameter(s): [", ",", "]"));
+        }
+    }
+
+    public static ValidationResult validate(Variable var, List<ParameterValidationContext> parameterValidationContext, Object value)
+    {
+        FunctionParameterTypeValidator validator = FunctionParameterTypeValidator.externalParameterTypeValidator(((PackageableType) var.genericType.rawType).fullPath);
+        if (validator == null)
+        {
+            ValidationResult result = null;
+            for (ParameterValidationContext context : parameterValidationContext.stream().filter(c -> c.varName.equals(var.name)).collect(Collectors.toList()))
+            {
+                result = context.accept(new ParameterValidationContextExecutor(var, value));
+                if (result != null && !result.isValid())
+                {
+                    return result;
+                }
+            }
+            return result == null ? ValidationResult.errorValidationResult("Unknown external parameter type: " + ((PackageableType) var.genericType.rawType).fullPath + ", valid external parameter types: " + FunctionParameterTypeValidator.getExternalParameterTypes().makeString("[", ", ", "]")) : ValidationResult.successValidationResult();
+        }
+        if (value instanceof Stream)
+        {
+            return ValidationResult.successValidationResult();
+        }
+        if (value instanceof Iterable)
+        {
+            ValidationResult result = LazyIterate.collect((Iterable<?>) value, validator::validate).reject(ValidationResult::isValid).getAny();
+            return (result == null) ? ValidationResult.successValidationResult() : result;
+        }
+        return validator.validate(value);
+    }
+}

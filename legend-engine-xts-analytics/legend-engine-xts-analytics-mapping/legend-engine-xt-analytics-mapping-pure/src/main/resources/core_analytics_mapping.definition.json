@@ -1,0 +1,16 @@
+{
+  "name": "core_analytics_mapping",
+  "pattern": "(meta::analytics::mapping)(::.*)?",
+  "dependencies": [
+    "platform",
+    "platform_dsl_mapping",
+    "platform_store_relational",
+    "core_functions_json",
+    "core_functions_standard",
+    "core_functions_unclassified",
+    "core_analytics_class",
+    "core_relational",
+    "core_external_compiler",
+    "core"
+  ]
+}

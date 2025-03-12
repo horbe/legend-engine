@@ -1,0 +1,162 @@
+// Copyright 2022 Goldman Sachs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import meta::pure::graphFetch::*;
+import meta::pure::lineage::scanProject::*;
+import meta::pure::mapping::*;
+
+Class meta::pure::lineage::scanProject::Project
+{
+   projectfuncEntryPoint : ValueSpecification[1];
+   columns : Pair<String, FunctionDefinition<Any>>[*];
+}
+
+function meta::pure::lineage::scanProject::scanProject(f:ValueSpecification[1]):Project[*]
+{
+   $f->scanProjectRecursive([],[],^Map<String, List<Any>>());
+}
+
+function meta::pure::lineage::scanProject::scanProject(f:ValueSpecification[1],vars:Map<String, List<Any>>[1]):Project[*]
+{
+   $f->scanProjectRecursive([],[],$vars);
+}
+
+Class <<access.private>> meta::pure::lineage::scanProject::Unknown
+{
+
+}
+
+function <<access.private>> meta::pure::lineage::scanProject::scanProjectRecursive(val:Any[1], project:Project[*], processed:Function<Any>[*],vars:Map<String, List<Any>>[1]):Project[*]
+{
+   $val->match([
+      l:FunctionDefinition<Any>[1]| $l.expressionSequence->map(e|$e->scanProjectRecursive($project, $processed,$vars)),
+      n:NativeFunction<Any>[1]| $project,
+      fe:FunctionExpression[1]| let res = if ($fe.func->isNotEmpty(),
+                                    | let dispatch = [
+                                                      pair('meta::pure::tds::project_K_MANY__Function_MANY__String_MANY__TabularDataSet_1_',
+                                                           |let funcs = $fe.parametersValues->at(1)->match([s:InstanceValue[1]|$s.values, a:Any[*]|^Unknown()]);
+                                                            let names = $fe.parametersValues->at(2)->match([s:InstanceValue[1]|$s.values, a:Any[*]|^Unknown()]);
+                                                            ^Project(projectfuncEntryPoint = $fe,
+                                                                     columns = zip($names->match([s:String[*]|$s, a:Unknown[*]|range(1, $funcs->size(),1)->map(z|'unknown_'+$z->toString())]),
+                                                                                   $funcs->match([s:FunctionDefinition<Any>[*]|$s, a:Unknown[*]|[]]))
+                                                            );
+                                                      ),
+                                                      pair('meta::pure::tds::project_T_MANY__ColumnSpecification_MANY__TabularDataSet_1_',
+                                                           |let cols = $fe.parametersValues->at(1)->evaluateAndDeactivate();
+                                                            let columns =  $cols->map(c|$c->meta::pure::lineage::scanProject::extractCol($vars));
+                                                            ^Project(projectfuncEntryPoint = $fe,
+                                                                     columns = zip($columns.name, $columns.func->cast(@FunctionDefinition<Any>)));
+                                                                     ),
+                                                      pair('meta::pure::tds::groupBy_K_MANY__Function_MANY__AggregateValue_MANY__String_MANY__TabularDataSet_1_',
+                                                        | let funcs = $fe.parametersValues->at(1)->match([s:InstanceValue[1]|$s.values, a:Any[*]|^Unknown()]);
+                                                          let aggregateFuncs = $fe.parametersValues->at(2)->scanAggregateValue();
+                                                          let allFuncs = $funcs->concatenate($aggregateFuncs);
+                                                          let names = $fe.parametersValues->at(3)->match([s:InstanceValue[1]|$s.values,a:Any[*]|^Unknown()]);
+                                                          ^Project(projectfuncEntryPoint = $fe,
+                                                                    columns = zip($names->match([s:String[*]|$s, a:Unknown[*]|range(1, $allFuncs->size(),1)->map(z|'unknown_'+$z->toString())]),
+                                                                                  $allFuncs->match([s:FunctionDefinition<Any>[*]|$s, a:Unknown[*]|[]]))
+                                                          );
+                                                      ),
+                                                      pair('meta::pure::graphFetch::execution::graphFetch_T_MANY__RootGraphFetchTree_1__T_MANY_',
+                                                        | 
+                                                          let tree = $fe.parametersValues->at(1)->match([s:InstanceValue[1]|$s.values, a:Any[*]|^Unknown()]);
+                                                          ^Project(projectfuncEntryPoint = $fe, columns = scanRootGraphFetchTree($tree->cast(@RootGraphFetchTree<Any>)->toOne()));
+                                                      ),
+                                                      pair('meta::pure::graphFetch::execution::graphFetchChecked_T_MANY__RootGraphFetchTree_1__Checked_MANY_',
+                                                        |
+                                                          let tree = $fe.parametersValues->at(1)->match([s:InstanceValue[1]|$s.values, a:Any[*]|^Unknown()]);
+                                                          ^Project(projectfuncEntryPoint = $fe, columns = scanRootGraphFetchTree($tree->cast(@RootGraphFetchTree<Any>)->toOne()));
+                                                      )
+                                                    ];
+                                     let funcFullPath = $fe.func->toOne()->elementToPath();
+                                     let res = $dispatch->filter(d|$funcFullPath == $d.first);
+                                     if ($res->isEmpty(),
+                                         |let params = $fe.parametersValues->map(a|$a->scanProjectRecursive($project, $processed,$vars));
+                                          if($processed->contains($fe.func->toOne()) || $fe.func->toOne()->elementToPath()->startsWith('meta::'),
+                                             |[],
+                                             |$fe.func->toOne()->scanProjectRecursive($project, $processed->concatenate($fe.func->toOne()),$vars)
+                                          )->concatenate($params);,
+                                         |$res->toOne().second->eval()
+                                     );,
+                                    |$fe.parametersValues->map(a|$a->scanProjectRecursive($project, $processed,$vars))
+                                ),
+      i:InstanceValue[1]|$i.values->map(a|$a->scanProjectRecursive($project, $processed,$vars)),
+      p:VariableExpression[1]|$project,
+      p:KeyExpression[1]|$p.expression->scanProjectRecursive($project, $processed,$vars),
+      p:Mapping[1]|$project,
+      c:Class<Any>[1]|$project,
+      p:Property<Nil,Any|*>[1]|$project,
+      e:Enumeration<Any>[1]|$project,
+      p:String[1]|$project,
+      p:Boolean[1]|$project,
+      p:Integer[1]|$project,
+      a:Any[1]|$project
+   ]
+  );
+}
+
+function <<access.private>> meta::pure::lineage::scanProject::extractCol(vs:ValueSpecification[1],vars:Map<String, List<Any>>[1]):BasicColumnSpecification<Any>[*]
+{ 
+ $vs->match(
+          [
+            i:InstanceValue[1] |   let cols = $i.values->evaluateAndDeactivate()->cast(@SimpleFunctionExpression);
+                                   let colSpecs = $cols->map(c | $c->reactivate($vars)->cast(@BasicColumnSpecification<Any>));,
+            s:SimpleFunctionExpression[1] |   $s->reactivate($vars)->cast(@BasicColumnSpecification<Any>);,
+            a:Any[*]| [] ;
+          ]
+      );
+}
+
+function <<access.private>> meta::pure::lineage::scanProject::scanRootGraphFetchTree(root:meta::pure::graphFetch::RootGraphFetchTree<Any>[1]):Pair<String, FunctionDefinition<Any>>[*]
+{
+  let rootGetAllExpression = meta::pure::lineage::scanProject::createGetAllApplicationForRootGraphFetchTree($root);
+  $root.subTrees->map(x | $x->cast(@PropertyGraphFetchTree)->recurseForPropertyGraphFetchTree($rootGetAllExpression,$root.class.name->toOne()));
+}
+
+function <<access.private>> meta::pure::lineage::scanProject::recurseForPropertyGraphFetchTree(prop: PropertyGraphFetchTree[1], functionExpression: ValueSpecification[1], name:String[1]):Pair<String, FunctionDefinition<Any>>[*]
+{
+  let propertyApplicationExpression = meta::pure::graphFetch::routing::createFunctionApplicationForPropertyGraphFetchTree($prop, $functionExpression);
+  let propertyName = $name + '.' + $prop.property.name->toOne();
+  if($prop.subTrees->isEmpty(),
+    |  pair($propertyName, ^FunctionDefinition<{->TabularDataSet[1]}>(expressionSequence = $propertyApplicationExpression));,
+    |  $prop.subTrees->map(x | $x->cast(@PropertyGraphFetchTree)->recurseForPropertyGraphFetchTree($propertyApplicationExpression,$propertyName));
+  );
+}
+
+function <<access.private>> meta::pure::lineage::scanProject::createGetAllApplicationForRootGraphFetchTree(root: RootGraphFetchTree<Any>[1]):FunctionExpression[1]
+{
+  let getAllExpression = ^SimpleFunctionExpression
+  (
+      func = getAll_Class_1__T_MANY_,
+      functionName = 'getAll',
+      importGroup = system::imports::coreImport,
+      genericType = ^GenericType(rawType = $root.class),
+      multiplicity = ZeroMany,
+      parametersValues =  ^InstanceValue(values = $root.class, genericType = ^GenericType(rawType = Class, typeArguments = ^GenericType(rawType = $root.class)), multiplicity = PureOne)                    
+  )->evaluateAndDeactivate();
+}
+
+
+
+function <<access.private>> meta::pure::lineage::scanProject::scanAggregateValue(val:Any[*]):FunctionDefinition<Any>[*]
+{
+  if ($val->isEmpty(),
+      | [],
+      | $val->match([
+                      s: InstanceValue[*]|$s.values->scanAggregateValue(),
+                      se: FunctionExpression[*]| $se->map(x| $x.parametersValues->at(0))->scanAggregateValue(),
+                      f: FunctionDefinition<Any>[*]|$f,
+                      a: Any[*]|[]]);
+    );  
+}

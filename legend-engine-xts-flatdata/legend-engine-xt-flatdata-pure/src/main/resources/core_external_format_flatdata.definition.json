@@ -1,0 +1,9 @@
+{
+  "name": "core_external_format_flatdata",
+  "pattern": "(meta::external::format::flatdata)(::.*)?",
+  "dependencies": [
+    "platform",
+    "core_functions_unclassified",
+    "core"
+  ]
+}

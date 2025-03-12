@@ -1,0 +1,12 @@
+{
+  "name": "core_relational_sqlserver",
+  "pattern": "(meta::relational::functions::sqlQueryToString::sqlServer|meta::relational::tests::sqlQueryToString::sqlServer|meta::relational::sqlServer::tests)(::.*)?",
+  "dependencies": [
+    "platform",
+    "platform_store_relational",
+    "core_functions_unclassified",
+    "core",
+    "core_relational",
+    "core_functions_standard"
+  ]
+}

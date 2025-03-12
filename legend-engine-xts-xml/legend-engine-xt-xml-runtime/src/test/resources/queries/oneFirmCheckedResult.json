@@ -1,0 +1,16 @@
+{
+  "builder": {
+    "_type": "json"
+  },
+  "values": {
+    "defects": [],
+    "source": {
+      "number": 1,
+      "record": "<firm name=\"Acme Co.\" ranking=\"2\"/>"
+    },
+    "value": {
+      "name": "Acme Co.",
+      "ranking": 2
+    }
+  }
+}

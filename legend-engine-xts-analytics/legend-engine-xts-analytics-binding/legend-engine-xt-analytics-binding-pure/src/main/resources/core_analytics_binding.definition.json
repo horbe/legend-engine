@@ -1,0 +1,10 @@
+{
+  "name": "core_analytics_binding",
+  "pattern": "(meta::analytics::binding)(::.*)?",
+  "dependencies": [
+    "platform",
+    "core_functions_unclassified",
+    "core_functions_json",
+    "core"
+  ]
+}

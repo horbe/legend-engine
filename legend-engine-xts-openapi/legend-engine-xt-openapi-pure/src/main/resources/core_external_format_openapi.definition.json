@@ -1,0 +1,18 @@
+{
+  "name": "core_external_format_openapi",
+  "pattern": "(meta::external::function::description::openapi)(::.*)?",
+  "dependencies": [
+    "platform",
+    "core_functions_standard",
+    "core_functions_unclassified",
+    "core_functions_json",
+    "platform_dsl_mapping",
+    "platform_dsl_path",
+    "platform_dsl_graph",
+    "core",
+    "core_generation",
+    "core_service",
+    "core_relational",
+    "platform_store_relational"
+  ]
+}

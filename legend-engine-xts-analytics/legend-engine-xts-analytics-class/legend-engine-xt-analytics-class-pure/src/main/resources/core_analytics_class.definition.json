@@ -1,0 +1,8 @@
+{
+  "name": "core_analytics_class",
+  "pattern": "(meta::analytics::class)(::.*)?",
+  "dependencies": [
+    "platform",
+    "core_functions_unclassified"
+  ]
+}

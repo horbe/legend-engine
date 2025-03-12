@@ -1,0 +1,251 @@
+import meta::pure::graphFetch::execution::*;
+import meta::external::dataquality::tests::*;
+import meta::external::dataquality::tests::domain::*;
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGenerationMultipleConstraints():Boolean[1]
+{
+  doTest('$[' +
+    '      meta::external::dataquality::tests::domain::Person<mustBeOfLegalAge,validNameLength,ageMustBePositive>{' +
+    '        name,' +
+    '        addresses{' +
+    '         addressId' +
+    '        }' +
+    '      }' +
+    '    ]$', {|Person.all()
+                ->filter(x|(!(($x.age >= 0)) || (!(($x.age >= 18)) || !(($x.name->length() < 1000)))))
+                ->graphFetchChecked(#{
+                  Person {
+                    addresses {
+                      addressId
+                    },
+                    age,
+                    name
+                  }
+                }#)->serialize(#{
+                  Person {
+                    addresses {
+                      addressId
+                    },
+                    age,
+                    name
+                  }
+                }#)
+    }, true, false)
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGenerationNonTemporalToBusinessTemporal():Boolean[1]
+{
+  doTest('$[' +
+    '      meta::external::dataquality::tests::domain::NonTemporal{' +
+    '        name,' +
+    '        businessTemporal{' +
+    '         name' +
+    '        }' +
+    '      }' +
+    '    ]$', {businessDate:Date[1] | meta::external::dataquality::tests::domain::NonTemporal.all()
+                ->graphFetchChecked(#{
+                  NonTemporal {
+                    name,
+                    businessTemporal($businessDate) {
+                      name
+                    }
+                  }
+                }#)->serialize(#{
+                  NonTemporal {
+                    name,
+                    businessTemporal($businessDate) {
+                      name
+                    }
+                  }
+                }#)
+    })
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGenerationNonTemporalToProcessingTemporal():Boolean[1]
+{
+  doTest('$[' +
+    '      meta::external::dataquality::tests::domain::NonTemporal{' +
+    '        name,' +
+    '        processingTemporal{' +
+    '         name' +
+    '        }' +
+    '      }' +
+    '    ]$', {processingDate:Date[1] | meta::external::dataquality::tests::domain::NonTemporal.all()
+                ->graphFetchChecked(#{
+                  NonTemporal {
+                    name,
+                    processingTemporal($processingDate) {
+                      name
+                    }
+                  }
+                }#)->serialize(#{
+                  NonTemporal {
+                    name,
+                    processingTemporal($processingDate) {
+                      name
+                    }
+                  }
+                }#)
+    })
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGenerationNonTemporalToBusinessAndProcessingTemporal():Boolean[1]
+{
+  doTest('$[' +
+    '      meta::external::dataquality::tests::domain::NonTemporal{' +
+    '        name,' +
+    '        processingTemporal{' +
+    '         name' +
+    '        },' +
+    '        businessTemporal{' +
+    '         name' +
+    '        }' +    
+    '      }' +
+    '    ]$', {processingDate:Date[1], businessDate:Date[1] | meta::external::dataquality::tests::domain::NonTemporal.all()
+                ->graphFetchChecked(#{
+                  NonTemporal {
+                    name,
+                    processingTemporal($processingDate) {
+                      name
+                    },
+                    businessTemporal($businessDate) {
+                      name
+                    }                    
+                  }
+                }#)->serialize(#{
+                  NonTemporal {
+                    name,
+                    processingTemporal($processingDate) {
+                      name
+                    },
+                    businessTemporal($businessDate) {
+                      name
+                    }                        
+                  }
+                }#)
+    })
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGenerationNonTemporalToBiTemporal():Boolean[1]
+{
+  doTest('$[' +
+    '      meta::external::dataquality::tests::domain::NonTemporal{' +
+    '        name,' +
+    '        biTemporal{' +
+    '         name' +
+    '        }' +   
+    '      }' +
+    '    ]$', {processingDate:Date[1], businessDate:Date[1] | meta::external::dataquality::tests::domain::NonTemporal.all()
+                ->graphFetchChecked(#{
+                  NonTemporal {
+                    name,
+                    biTemporal($processingDate, $businessDate) {
+                      name
+                    }                 
+                  }
+                }#)->serialize(#{
+                  NonTemporal {
+                    name,
+                    biTemporal($processingDate, $businessDate) {
+                      name
+                    }                     
+                  }
+                }#)
+    })
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testMetadata():Boolean[1]
+{
+  let dq = meta::external::dataquality::tests::loadDataQuality('$[' +
+    '      meta::external::dataquality::tests::domain::NonTemporal<nameLength>{' +
+    '        name,' +
+    '        biTemporal{' +
+    '         name' +
+    '        }' +   
+    '      }' +
+    '    ]$');
+
+
+    let metadata = meta::external::dataquality::generateDQMetaDataForDQValidation($dq);
+    
+    //TODO assert on structure.
+    assert($metadata->isNotEmpty());
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGeneration_relationValidation():Boolean[1]
+{
+  doRelationTest('###DataQualityValidation' +
+    '      DataQualityRelationValidation meta::external::dataquality::tests::domain::RelationValidation' +
+    '      {' +
+    '        query: #>{meta::external::dataquality::tests::domain::db.personTable}#->select(~[FIRSTNAME, LASTNAME])->extend(~fullname:x|[$x.FIRSTNAME->toOne(), $x.LASTNAME->toOne()]->joinStrings());' +
+    '        runtime: meta::external::dataquality::tests::domain::DataQualityRuntime;' +
+    '        validations: [' +
+    '          {' +
+    '             name: \'validFirstName\';' +
+    '             description: \'first name should not be empty\';' +
+    '             assertion: row2|$row2.FIRSTNAME->isNotEmpty();' +
+    '          }' +
+    '         ];' +
+    '      }','validFirstName', {|#>{meta::external::dataquality::tests::domain::db.personTable}#->select(~[FIRSTNAME, LASTNAME])->extend(~fullname:x|[$x.FIRSTNAME->meta::pure::functions::multiplicity::toOne(), $x.LASTNAME->meta::pure::functions::multiplicity::toOne()]->joinStrings())->filter(row2|$row2.FIRSTNAME->meta::pure::functions::collection::isNotEmpty()->meta::pure::functions::boolean::not())
+    })
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGeneration_parameterized_relationValidation():Boolean[1]
+{
+  doRelationTest('###DataQualityValidation' +
+    '      DataQualityRelationValidation meta::external::dataquality::tests::domain::RelationValidation' +
+    '      {' +
+    '        query: name:String[1] | #>{meta::external::dataquality::tests::domain::db.personTable}#->select(~FIRSTNAME)->filter(n|$n == $name)->groupBy(~[FIRSTNAME], ~[count: x | $x.FIRSTNAME : y | $y->count()]);' +
+    '        runtime: meta::external::dataquality::tests::domain::DataQualityRuntime;' +
+    '        validations: [' +
+    '          {' +
+    '             name: \'validFirstName\';' +
+    '             description: \'first name should not exceed 100 chars\';' +
+    '             assertion: row2|$row2.FIRSTNAME->size() <= 100;' +
+    '          }' +
+    '         ];' +
+    '      }','validFirstName', {name:String[1]|#>{meta::external::dataquality::tests::domain::db.personTable}#->select(~FIRSTNAME)->filter({n|($n == $name)})->groupBy(~[FIRSTNAME], ~[count:{x|$x.FIRSTNAME}:{y|$y->meta::pure::functions::collection::count()}])->filter(row2|meta::pure::functions::boolean::not(($row2.FIRSTNAME->meta::pure::functions::collection::size() <= 100)))
+    })
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGeneration_relationValidation_withLimit():Boolean[1]
+{
+  doRelationTestWithLimit('###DataQualityValidation' +
+    '      DataQualityRelationValidation meta::external::dataquality::tests::domain::RelationValidation' +
+    '      {' +
+    '        query: #>{meta::external::dataquality::tests::domain::db.personTable}#->select(~[FIRSTNAME, LASTNAME])->extend(~fullname:x|[$x.FIRSTNAME->toOne(), $x.LASTNAME->toOne()]->joinStrings());' +
+    '        runtime: meta::external::dataquality::tests::domain::DataQualityRuntime;' +
+    '        validations: [' +
+    '          {' +
+    '             name: \'validFirstName\';' +
+    '             description: \'first name should not be empty\';' +
+    '             assertion: row2|$row2.FIRSTNAME->isNotEmpty();' +
+    '          }' +
+    '         ];' +
+    '      }',
+          'validFirstName',
+          {|#>{meta::external::dataquality::tests::domain::db.personTable}#->select(~[FIRSTNAME, LASTNAME])->extend(~fullname:x|[$x.FIRSTNAME->meta::pure::functions::multiplicity::toOne(), $x.LASTNAME->meta::pure::functions::multiplicity::toOne()]->joinStrings())->filter(row2|$row2.FIRSTNAME->meta::pure::functions::collection::isNotEmpty()->meta::pure::functions::boolean::not())->take(100)},
+          100
+    )
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testLambdaGeneration_relationValidation_aggregate():Boolean[1]
+{
+  doRelationTest('###DataQualityValidation' +
+    '      DataQualityRelationValidation meta::external::dataquality::tests::domain::RelationValidation' +
+    '      {' +
+    '        query: #>{meta::external::dataquality::tests::domain::db.personTable}#->select(~[FIRSTNAME, LASTNAME]);' +
+    '        runtime: meta::external::dataquality::tests::domain::DataQualityRuntime;' +
+    '        validations: [' +
+    '          {' +
+    '             name: \'nonEmptyDataset\';' +
+    '             description: \'dataset should not be empty\';' +
+    '             assertion: rel|$rel->meta::external::dataquality::relationNotEmpty();' +
+    '             type: AGGREGATE;' +
+    '          }' +
+    '         ];' +
+    '      }',
+          'nonEmptyDataset',
+          {|{rel|$rel->meta::external::dataquality::relationNotEmpty();}->meta::pure::functions::lang::eval(#>{meta::external::dataquality::tests::domain::db.personTable}#->meta::pure::functions::relation::select(~[FIRSTNAME,LASTNAME]));}
+    )
+}

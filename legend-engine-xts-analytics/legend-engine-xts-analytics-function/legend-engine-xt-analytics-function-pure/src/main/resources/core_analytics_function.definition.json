@@ -1,0 +1,10 @@
+{
+  "name": "core_analytics_function",
+  "pattern": "(meta::analytics::function)(::.*)?",
+  "dependencies": [
+    "platform",
+    "core_functions_unclassified",
+    "core_functions_json",
+    "core"
+  ]
+}

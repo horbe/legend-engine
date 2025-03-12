@@ -1,0 +1,122 @@
+// Copyright 2020 Goldman Sachs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import meta::pure::functions::hash::*;
+import meta::external::language::java::factory::*;
+import meta::external::language::java::metamodel::*;
+import meta::external::language::java::metamodel::project::*;
+import meta::external::language::java::serialization::*;
+import meta::external::language::java::transform::*;
+import meta::pure::executionPlan::platformBinding::legendJava::*;
+import meta::pure::executionPlan::platformBinding::legendJava::library::string::*;
+
+function meta::pure::executionPlan::platformBinding::legendJava::library::string::registerStringLibrary(conventions: Conventions[1]): Conventions[1]
+{   
+   let library  = $conventions->className(Library);
+   
+   let lib = newConventionsLibrary()
+      ->usesString(javaString(), javaString(), {s:String[1] | j_string($s)})
+      ->addFunctionCoders([
+         fc (joinStrings_String_MANY__String_1_,                                 fcAlias(                       plus_String_MANY__String_1_)),
+         
+         fc2(chunk_String_1__Integer_1__String_MANY_,                            {ctx,s,val                   | $library->j_invoke('chunk', [$s, $val->j_cast(javaInt())], javaList(javaString()))}),
+         fc2(repeatString_String_$0_1$__Integer_1__String_$0_1$_,                {ctx,s,times                 | $library->j_invoke('repeatString', [$s, $times->j_cast(javaInt())], javaString())}),
+
+         fc1(toUpperFirstCharacter_String_MANY__String_MANY_,                    {ctx,strs                    | $strs->j_streamOf()->js_map($library->j_methodReference('toUpperFirstCharacter', javaFunctionType(javaString(), javaString())->nonNull()))}),
+
+         fc2(matches_String_1__String_1__Boolean_1_,                             {ctx,s,regex                 | $s->j_invoke('matches', [$regex])}),
+
+         fc1(decodeBase64_String_1__String_1_,                                   {ctx,str                    | $library->j_invoke('decodeBase64', [$str], javaString())}),         
+         fc1(encodeBase64_String_1__String_1_,                                   {ctx,str                    | $library->j_invoke('encodeBase64', [$str], javaString())}),
+         fc2(decodeUrl_String_1__String_1__String_1_,                            {ctx,str,charset            | $library->j_invoke('decodeUrl', [$str, $charset], javaString())}),         
+         fc2(encodeUrl_String_1__String_1__String_1_,                            {ctx,str,charset            | $library->j_invoke('encodeUrl', [$str, $charset], javaString())}),
+
+         fc2(hash_String_1__HashType_1__String_1_,                               {ctx,text,hashType          | $library->j_invoke('hash', [$text, $hashType], javaString())}),
+         fc2(jaroWinklerSimilarity_String_1__String_1__Float_1_,                 {ctx,str1,str2              | $library->j_invoke('jaroWinklerSimilarity',[$str1, $str2], javaDouble())}),
+         fc2(levenshteinDistance_String_1__String_1__Integer_1_,                 {ctx,str1,str2              | $library->j_invoke('levenshteinDistance',[$str1, $str2], javaLong())})
+      ]);
+
+   $conventions->registerLibrary($lib);
+}
+
+
+// function <<access.private>> meta::pure::executionPlan::platformBinding::legendJava::library::string::addPureToStringMethod(class:meta::external::language::java::metamodel::Class[1], conventions:Conventions[1]): meta::external::language::java::metamodel::Class[1]
+// {
+//    let any           = j_parameter(javaObject(), 'any');
+//    let dateClasses = [Date, StrictDate, DateTime]->map(t| $conventions->pureTypeToJavaType($t, PureOne))->cast(@meta::external::language::java::metamodel::Class)->removeDuplicates();
+//    let isDateClass = $dateClasses->tail()->fold({cl, test| j_or($test, $any->j_instanceof($cl))}, $any->j_instanceof($dateClasses->at(0)));
+   
+//    $class->addMethod(javaMethod(['public', 'static'], javaString(), 'pureToString', $any->cast(@meta::external::language::java::metamodel::Parameter),
+//       [
+//          j_if($isDateClass,
+//             $conventions->codeDateToString($any)->j_return(),
+//          j_if(j_or($any->j_instanceof(javaDoubleBoxed()), $any->j_instanceof(javaFloatBoxed())),
+//             {|
+//                let format = j_variable(javaDecimalFormat(), 'format');
+               
+//                j_if($any->j_cast(javaDouble())->j_eq(j_double(0.0)),
+//                     j_string('0.0')->j_return(),
+//                     [
+//                        $format->j_declare(javaDecimalFormat()->j_new([j_string('0.0'), javaDecimalFormatSymbols()->j_invoke('getInstance', javaLocale()->j_field('ENGLISH', javaLocale()), javaDecimalFormatSymbols())])),
+//                        $format->j_invoke('setMaximumFractionDigits', j_int(340), javaVoid()), 
+//                        $format->j_invoke('format', $any->j_cast(javaDouble()), javaString())->j_return()                       
+//                     ]
+//                );               
+//             }->eval(),
+//             $any->j_toString()->j_return()
+//          ))
+//       ]
+//    )->nonNull());
+// }
+
+// function <<access.private>> meta::pure::executionPlan::platformBinding::legendJava::library::string::addToRepresentationMethod(class:meta::external::language::java::metamodel::Class[1], conventions:Conventions[1]): meta::external::language::java::metamodel::Class[1]
+// {
+//    let any         = j_parameter(javaObject(), 'any');
+//    let dateClasses = [Date, StrictDate, DateTime]->map(t| $conventions->pureTypeToJavaType($t, PureOne))->cast(@meta::external::language::java::metamodel::Class)->removeDuplicates();
+//    let isDateClass = $dateClasses->tail()->fold({cl, test| j_or($test, $any->j_instanceof($cl))}, $any->j_instanceof($dateClasses->at(0)));
+   
+//    $class->addMethod(javaMethod(['public', 'static'], javaString(), 'toRepresentation', $any->cast(@meta::external::language::java::metamodel::Parameter),
+//       [
+//          j_if(
+//             $any->j_instanceof(javaString()),
+//             j_string('\'')->j_plus($any->j_toString()->j_invoke('replace', [j_string('\''), j_string('\\\'')]))->j_plus(j_string('\''))->j_return(),
+//          j_if(
+//             $isDateClass,
+//             j_string('%')->j_plus($class->j_invoke('pureToString', $any, javaString()))->j_return(),
+//          j_if(
+//             $any->j_instanceof(javaBigDecimal()),
+//             $any->j_toString()->j_plus(j_string('D'))->j_return(),
+//             $class->j_invoke('pureToString', $any, javaString())->j_return()
+//          )))
+//       ]
+//    ));   
+// }
+
+// function <<access.private>> meta::pure::executionPlan::platformBinding::legendJava::library::string::codeDateToString(conventions: Conventions[1], date:Code[1]): Code[1]
+// {
+//    let pureDate = $conventions->className(PureDate);
+//    if($conventions->dateType() == $pureDate,
+//       |$date->j_toString()->j_plus(j_conditional($date->j_cast($pureDate)->j_invoke('hasMinute', [], javaBoolean()), j_string('+0000'), j_string(''))),
+//       |$date->j_toString()
+//    );
+// }
+
+// function <<access.private>> meta::pure::executionPlan::platformBinding::legendJava::library::string::codeDateFormat(conventions: Conventions[1], date:Code[1], formatString:Code[1]): Code[1]
+// {
+//    let pureDate = $conventions->className(PureDate);
+//    if($conventions->dateType() == $pureDate,
+//       |$date->j_cast($pureDate)->j_invoke('format', $formatString, javaString()),
+//       |fail('TODO'); $date;
+//    );
+// }

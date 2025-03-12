@@ -1,0 +1,113 @@
+// Copyright 2024 Goldman Sachs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import meta::external::query::sql::metamodel::*;
+import meta::external::store::relational::sqlDialectTranslation::*;
+import meta::external::store::relational::sqlDialectTranslation::functionRegistry::*;
+import meta::external::store::relational::sqlDialectTranslation::sqlTyping::typeInference::*;
+import meta::pure::extension::*;
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Module Extension
+
+Class meta::external::store::relational::sqlDialectTranslation::SqlDialectTranslationModuleExtension extends ModuleExtension
+[
+  $this.module == sqlDialectTranslationModuleExtensionName()
+]
+{
+  extraSqlDialects: SqlDialect[*];
+}
+
+function meta::external::store::relational::sqlDialectTranslation::sqlDialectTranslationModuleExtensionName(): String[1]
+{
+  'SqlDialectTranslation'
+}
+
+function <<access.private>> meta::external::store::relational::sqlDialectTranslation::fetchSqlDialectForDbType(dbType: String[1], extensions: Extension[*]): SqlDialect[1]
+{
+  let sqlDialects = $extensions.moduleExtensions->filter(m | $m.module == sqlDialectTranslationModuleExtensionName())->cast(@SqlDialectTranslationModuleExtension).extraSqlDialects;
+  let filtered = $sqlDialects->filter(s | $s.dbType == $dbType);
+  assert($filtered->isNotEmpty(), | 'No SQL dialects provided in extensions for database type: "' + $dbType + '"');
+  assert($filtered->size() == 1, | 'Too many SQL dialects (' + $filtered->size()->toString() + ') provided in extensions for database type: "' + $dbType + '"');
+  $filtered->toOne();
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Interface
+
+function meta::external::store::relational::sqlDialectTranslation::generateSqlDialectForStatement(statement: Statement[1], config: SqlDialectTranslationConfig[1], extensions: Extension[*]): String[1]
+{
+  let sqlDialect = $config.dbConfig.dbType->fetchSqlDialectForDbType($extensions);
+  let typeInferredStatement = $statement->match([
+    q: Query[1] | $q->inferTypes($config.functionRegistry),
+    s: Statement[1] | $s
+  ]);
+  $sqlDialect->executeNodeProcessor($typeInferredStatement, ^SqlDialectTranslationState(), $config);
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Configuration and state
+
+Class meta::external::store::relational::sqlDialectTranslation::SqlDialectTranslationConfig
+{
+  dbConfig: DbConfig[1];
+  formatConfig: FormatConfig[1]; 
+  functionRegistry: Map<String, SqlFunction>[1];
+}
+
+Class meta::external::store::relational::sqlDialectTranslation::DbConfig
+{
+  dbType: String[1];
+  dbTimeZone: String[0..1];
+  quoteIdentifiers: Boolean[1] = false;
+}
+
+Class meta::external::store::relational::sqlDialectTranslation::FormatConfig
+{
+  pretty: Boolean[1] = false;
+  indent: String[1] = '  ';
+  lineSeparator: String[1] = '\n';
+  upperCaseKeywords: Boolean[1] = false;
+}
+
+Class meta::external::store::relational::sqlDialectTranslation::SqlDialectTranslationState
+{
+  level: Integer[1] = 0;
+
+  {doc.doc = 'Returns right level indentation for next line if pretty format configured, else space'}
+  separator(offsetIndex: Integer[1], config: SqlDialectTranslationConfig[1]) {
+    if ($config.formatConfig.pretty,
+        | $config.formatConfig.lineSeparator + repeat($config.formatConfig.indent, $this.level + $offsetIndex)->joinStrings(),
+        | ' '
+    )
+  }: String[1];
+
+  {doc.doc = 'Returns right level indentation for next line if pretty format configured, else empty string'}
+  separatorIfPretty(offsetIndex: Integer[1], config: SqlDialectTranslationConfig[1]) {
+    if ($config.formatConfig.pretty,
+        | $config.formatConfig.lineSeparator + repeat($config.formatConfig.indent, $this.level + $offsetIndex)->joinStrings(),
+        | ''
+    )
+  }: String[1];
+}
+
+function meta::external::store::relational::sqlDialectTranslation::increaseLevel(state: SqlDialectTranslationState[1]): SqlDialectTranslationState[1]
+{
+  ^$state(level = $state.level + 1)
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------

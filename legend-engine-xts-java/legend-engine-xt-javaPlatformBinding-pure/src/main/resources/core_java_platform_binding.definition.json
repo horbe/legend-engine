@@ -1,0 +1,18 @@
+{
+    "name" : "core_java_platform_binding",
+    "pattern" : "(meta::pure::executionPlan::platformBinding::legendJava|meta::pure::mapping::modelToModel::executionPlan::platformBinding::legendJava)(::.*)?",
+    "dependencies": [
+        "platform",
+        "platform_dsl_store",
+        "platform_dsl_mapping",
+        "platform_dsl_graph",
+        "core_functions_json",
+        "core_functions_unclassified",
+        "core_functions_standard",
+        "core",
+        "core_external_language_java",
+        "core_external_language_java_conventions_essential",
+        "core_external_language_java_conventions_standard",
+        "core_external_language_java_feature_based_generation"
+    ]
+}

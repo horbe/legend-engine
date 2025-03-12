@@ -1,0 +1,88 @@
+import meta::external::dataquality::tests::*;
+import meta::external::dataquality::*;
+
+
+
+function <<test.Test>> meta::external::dataquality::tests::testEmptyRelation():Boolean[1]
+{
+    let rel = #TDS
+                val, str
+              #;
+
+   $rel->meta::external::dataquality::relationEmpty()->assert();
+}
+
+function <<test.Test>> meta::external::dataquality::tests::testNonEmptyRelation():Boolean[1]
+{
+    let rel = #TDS
+                val, str
+                1, a
+                3, ewe
+                4, aa
+              #;
+
+   $rel->meta::external::dataquality::relationNotEmpty()->assert();
+}
+
+
+// row count - 
+function <<test.Test>> meta::external::dataquality::tests::rowCountGreaterThan():Boolean[1]
+{
+    let rel = #TDS
+                val, str
+                1, a
+                3, ewe
+                4, aa
+              #;
+
+   $rel->meta::external::dataquality::rowCountGreaterThan(2)->assert();
+}
+
+function <<test.Test>> meta::external::dataquality::tests::rowCountGreaterThanEqual():Boolean[1]
+{
+    let rel = #TDS
+                val, str
+                1, a
+                3, ewe
+                4, aa
+              #;
+
+   $rel->meta::external::dataquality::rowCountGreaterThanEqual(3)->assert();
+}
+
+function <<test.Test>> meta::external::dataquality::tests::rowCountLowerThan():Boolean[1]
+{
+    let rel = #TDS
+                val, str
+                1, a
+                3, ewe
+                4, aa
+              #;
+
+   $rel->meta::external::dataquality::rowCountLowerThan(4)->assert();
+}
+
+function <<test.Test>> meta::external::dataquality::tests::rowCountLowerThanEqual():Boolean[1]
+{
+    let rel = #TDS
+                val, str
+                1, a
+                3, ewe
+                4, aa
+              #;
+
+   $rel->meta::external::dataquality::rowCountGreaterThanEqual(3)->assert();
+}
+
+function <<test.Test>> meta::external::dataquality::tests::rowCountEqual():Boolean[1]
+{
+    let rel = #TDS
+                val, str
+                1, a
+                3, ewe
+                4, aa
+              #;
+
+   $rel->meta::external::dataquality::rowCountEqual(3)->assert();
+}
+
