@@ -1,0 +1,23 @@
+import meta::pure::statemachine::*;
+
+Class meta::pure::statemachine::StateMachine extends PackageableElement
+{
+    targetClass: Class<Any>[1];
+    states: State[*];
+    transitions: Transition[*];
+}
+
+Class meta::pure::statemachine::State
+{
+    name: String[1];
+    isInitial: Boolean[1];
+    isFinal: Boolean[1];
+}
+
+Class meta::pure::statemachine::Transition
+{
+    name: String[1];
+    sourceState: State[1];
+    targetState: State[1];
+    guardCondition: FunctionDefinition<{Any[1]->Boolean[1]}>[0..1];
+}
