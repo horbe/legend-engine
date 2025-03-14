@@ -129,8 +129,3 @@ function meta::external::query::graphQL::binding::hasCRUDStereotype(t: Any[1]): 
 {
   $t->hasGraphQLStereotype('CRUD')
 }
-
-function meta::external::query::graphQL::binding::getCRUDFields(): Property<Nil, Any|*>[*]
-{
-  [newProperty('_id', Long, PureOne), newProperty('_version', Long, PureOne)]
-}
