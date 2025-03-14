@@ -176,6 +176,7 @@ function meta::external::query::graphQL::binding::fromPure::sdl::transformPureTo
     ->concatenate($processingDirectives)
     ->concatenate($interfaces)
     ->concatenate(if($interfaces->isNotEmpty(), | hierarchyDirective(), | []))
+    ->concatenate(buildCRUDLoreAndDataTypes($crudClasses, $pureTypeToGraphQLScalarOverride))
     ->concatenate(buildCRUDOperationTypes($crudClasses, $pureTypeToGraphQLScalarOverride))
     ->meta::pure::functions::collection::sortBy(t | 
       $t->match(
@@ -247,8 +248,14 @@ function <<access.private>> meta::external::query::graphQL::binding::fromPure::s
                       ))->concatenate(
                         if($isCRUDClass,
                           | [
-                              ^InputValueDefinition(name = '_id', type = ^NamedTypeReference(name = $pureTypeToGraphQLScalarOverride.integerScalarType, nullable = true)),
-                              ^InputValueDefinition(name = '_version', type = ^NamedTypeReference(name = $pureTypeToGraphQLScalarOverride.integerScalarType, nullable = true))
+                              ^InputValueDefinition(
+                                name = 'lore', 
+                                type = ^NamedTypeReference(name = toInputTypeName($c.name->toOne() + 'Lore'), nullable = true)
+                              ),
+                              ^InputValueDefinition(
+                                name = 'data', 
+                                type = ^NamedTypeReference(name = toInputTypeName($c.name->toOne() + 'Data'), nullable = false)
+                              )
                             ],
                           | []
                         )
@@ -352,8 +359,16 @@ function <<access.private>> meta::external::query::graphQL::binding::fromPure::s
                     )->concatenate(
                       if($isCRUDClass,
                         | [
-                            ^FieldDefinition(name = '_id', type = ^NamedTypeReference(name = $pureTypeToGraphQLScalarOverride.integerScalarType, nullable = false), argumentDefinitions = []),
-                            ^FieldDefinition(name = '_version', type = ^NamedTypeReference(name = $pureTypeToGraphQLScalarOverride.integerScalarType, nullable = false), argumentDefinitions = [])
+                            ^FieldDefinition(
+                              name = 'lore', 
+                              type = ^NamedTypeReference(name = $c.name->toOne() + 'Lore', nullable = false), 
+                              argumentDefinitions = []
+                            ),
+                            ^FieldDefinition(
+                              name = 'data', 
+                              type = ^NamedTypeReference(name = $c.name->toOne() + 'Data', nullable = false), 
+                              argumentDefinitions = []
+                            )
                           ],
                         | []
                       )
@@ -436,6 +451,54 @@ function meta::external::query::graphQL::binding::fromPure::sdl::findTypes(pElem
     ->cast(@meta::pure::metamodel::type::Type)
     ->removeDuplicates()
 }
+function <<access.private>> meta::external::query::graphQL::binding::fromPure::sdl::buildCRUDLoreAndDataTypes(crudClasses: Class<Any>[*], pureTypeToGraphQLScalarOverride: PureTypeToGraphQLScalarOverride[1]): TypeSystemDefinition[*]
+{
+  $crudClasses->map(c | 
+    let props = $c->hierarchicalAllProperties()->filter(p | $p->isValidPropertyForGraphQL());
+    
+    // Build Lore types (regular and input)
+    let loreType = ^ObjectTypeDefinition(
+      name = $c.name->toOne() + 'Lore',
+      fields = [
+        ^FieldDefinition(name = '_id', type = ^NamedTypeReference(name = $pureTypeToGraphQLScalarOverride.integerScalarType, nullable = false), argumentDefinitions = []),
+        ^FieldDefinition(name = '_version', type = ^NamedTypeReference(name = $pureTypeToGraphQLScalarOverride.integerScalarType, nullable = false), argumentDefinitions = [])
+      ]
+    );
+    
+    let loreInputType = ^InputObjectTypeDefinition(
+      name = toInputTypeName($c.name->toOne() + 'Lore'),
+      fields = [
+        ^InputValueDefinition(name = '_id', type = ^NamedTypeReference(name = $pureTypeToGraphQLScalarOverride.integerScalarType, nullable = true)),
+        ^InputValueDefinition(name = '_version', type = ^NamedTypeReference(name = $pureTypeToGraphQLScalarOverride.integerScalarType, nullable = true))
+      ]
+    );
+    
+    // Build Data types (regular and input)
+    let dataType = ^ObjectTypeDefinition(
+      name = $c.name->toOne() + 'Data',
+      fields = $props->map(p |
+        ^FieldDefinition(
+          name = $p.name->toOne(),
+          type = buildObjectTypeCompatibleTypeReference($p->functionReturnType(), $p->functionReturnMultiplicity(), $pureTypeToGraphQLScalarOverride),
+          argumentDefinitions = []
+        )
+      )
+    );
+    
+    let dataInputType = ^InputObjectTypeDefinition(
+      name = toInputTypeName($c.name->toOne() + 'Data'),
+      fields = $props->map(p |
+        ^InputValueDefinition(
+          name = $p.name->toOne(),
+          type = buildInputTypeCompatibleTypeReference($p.genericType, $p.multiplicity, $pureTypeToGraphQLScalarOverride)
+        )
+      )
+    );
+    
+    [$loreType, $loreInputType, $dataType, $dataInputType];
+  )->flatten();
+}
+
 function <<access.private>> meta::external::query::graphQL::binding::fromPure::sdl::buildCRUDOperationTypes(crudClasses: Class<Any>[*], pureTypeToGraphQLScalarOverride: PureTypeToGraphQLScalarOverride[1]): TypeSystemDefinition[*]
 {
   if($crudClasses->isEmpty(),

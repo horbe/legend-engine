@@ -29,15 +29,35 @@ function <<test.Test>> meta::external::query::graphQL::binding::fromPure::sdl::t
     'type CRUDTaggedEntity {\n' +
     '  name: String!\n' +
     '  description: String\n' +
+    '  lore: CRUDTaggedEntityLore!\n' +
+    '  data: CRUDTaggedEntityData!\n' +
+    '}\n' +
+    '\n' +
+    'type CRUDTaggedEntityLore {\n' +
     '  _id: Int!\n' +
     '  _version: Int!\n' +
+    '}\n' +
+    '\n' +
+    'type CRUDTaggedEntityData {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
     '}\n' +
     '\n' +
     'input CRUDTaggedEntityInput {\n' +
     '  name: String!\n' +
     '  description: String\n' +
+    '  lore: CRUDTaggedEntityLoreInput\n' +
+    '  data: CRUDTaggedEntityDataInput!\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityLoreInput {\n' +
     '  _id: Int\n' +
     '  _version: Int\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityDataInput {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
     '}\n' +
     '\n' +
     'input CRUDTaggedEntity_bool_exp {\n' +
@@ -72,15 +92,35 @@ function <<test.Test>> meta::external::query::graphQL::binding::fromPure::sdl::t
     'type CRUDTaggedEntity {\n' +
     '  name: String!\n' +
     '  description: String\n' +
+    '  lore: CRUDTaggedEntityLore!\n' +
+    '  data: CRUDTaggedEntityData!\n' +
+    '}\n' +
+    '\n' +
+    'type CRUDTaggedEntityLore {\n' +
     '  _id: Long!\n' +
     '  _version: Long!\n' +
+    '}\n' +
+    '\n' +
+    'type CRUDTaggedEntityData {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
     '}\n' +
     '\n' +
     'input CRUDTaggedEntityInput {\n' +
     '  name: String!\n' +
     '  description: String\n' +
+    '  lore: CRUDTaggedEntityLoreInput\n' +
+    '  data: CRUDTaggedEntityDataInput!\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityLoreInput {\n' +
     '  _id: Long\n' +
     '  _version: Long\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityDataInput {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
     '}\n' +
     '\n' +
     'input CRUDTaggedEntity_bool_exp {\n' +
