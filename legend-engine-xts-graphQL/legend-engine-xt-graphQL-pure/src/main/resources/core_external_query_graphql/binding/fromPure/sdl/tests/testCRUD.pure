@@ -1,0 +1,152 @@
+// Copyright 2023 Goldman Sachs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import meta::external::query::graphQL::binding::*;
+import meta::external::query::graphQL::binding::fromPure::sdl::tests::*;
+import meta::external::query::graphQL::binding::fromPure::sdl::tests::model::*;
+
+function <<test.Test>> meta::external::query::graphQL::binding::fromPure::sdl::tests::testCRUDStereotype():Boolean[1]
+{
+  // Test with default Int type
+  let resDefault = typesToGraphQLString([CRUDTaggedEntity]);
+  
+  // Test with Long type override
+  let resLong = typesToGraphQLString([CRUDTaggedEntity], 'Long');
+
+  // Verify default Int type
+  assertEquals(
+    'type CRUDTaggedEntity {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
+    '  lore: CRUDTaggedEntityLore!\n' +
+    '  data: CRUDTaggedEntityData!\n' +
+    '}\n' +
+    '\n' +
+    'type CRUDTaggedEntityLore {\n' +
+    '  _id: Int!\n' +
+    '  _version: Int!\n' +
+    '}\n' +
+    '\n' +
+    'type CRUDTaggedEntityData {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityInput {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
+    '  lore: CRUDTaggedEntityLoreInput\n' +
+    '  data: CRUDTaggedEntityDataInput!\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityLoreInput {\n' +
+    '  _id: Int\n' +
+    '  _version: Int\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityDataInput {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntity_bool_exp {\n' +
+    '  name: String_comparison_exp\n' +
+    '  description: String_comparison_exp\n' +
+    '  _and: [CRUDTaggedEntity_bool_exp!]\n' +
+    '  _or: [CRUDTaggedEntity_bool_exp!]\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntity_exists_exp {\n' +
+    '  _exists: CRUDTaggedEntity_bool_exp\n' +
+    '}\n' +
+    '\n' +
+    'type Mutation {\n' +
+    '  createCRUDTaggedEntity(input: CRUDTaggedEntityInput!): CRUDTaggedEntity!\n' +
+    '  updateCRUDTaggedEntity(id: Int!, input: CRUDTaggedEntityInput!): CRUDTaggedEntity!\n' +
+    '  deleteCRUDTaggedEntity(id: Int!): Boolean!\n' +
+    '}\n' +
+    '\n' +
+    'type Query {\n' +
+    '  getCRUDTaggedEntityById(id: Int!): CRUDTaggedEntity\n' +
+    '  listCRUDTaggedEntity: [CRUDTaggedEntity!]!\n' +
+    '}\n'+
+    '\n' +
+    'schema {\n' +
+    '  query : Query\n' +
+    '  mutation : Mutation\n' +
+    '}', $resDefault);
+    
+  // Verify Long type override
+  assertEquals(
+    'type CRUDTaggedEntity {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
+    '  lore: CRUDTaggedEntityLore!\n' +
+    '  data: CRUDTaggedEntityData!\n' +
+    '}\n' +
+    '\n' +
+    'type CRUDTaggedEntityLore {\n' +
+    '  _id: Long!\n' +
+    '  _version: Long!\n' +
+    '}\n' +
+    '\n' +
+    'type CRUDTaggedEntityData {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityInput {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
+    '  lore: CRUDTaggedEntityLoreInput\n' +
+    '  data: CRUDTaggedEntityDataInput!\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityLoreInput {\n' +
+    '  _id: Long\n' +
+    '  _version: Long\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntityDataInput {\n' +
+    '  name: String!\n' +
+    '  description: String\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntity_bool_exp {\n' +
+    '  name: String_comparison_exp\n' +
+    '  description: String_comparison_exp\n' +
+    '  _and: [CRUDTaggedEntity_bool_exp!]\n' +
+    '  _or: [CRUDTaggedEntity_bool_exp!]\n' +
+    '}\n' +
+    '\n' +
+    'input CRUDTaggedEntity_exists_exp {\n' +
+    '  _exists: CRUDTaggedEntity_bool_exp\n' +
+    '}\n' +
+    '\n' +
+    'type Mutation {\n' +
+    '  createCRUDTaggedEntity(input: CRUDTaggedEntityInput!): CRUDTaggedEntity!\n' +
+    '  updateCRUDTaggedEntity(id: Long!, input: CRUDTaggedEntityInput!): CRUDTaggedEntity!\n' +
+    '  deleteCRUDTaggedEntity(id: Long!): Boolean!\n' +
+    '}\n' +
+    '\n' +
+    'type Query {\n' +
+    '  getCRUDTaggedEntityById(id: Long!): CRUDTaggedEntity\n' +
+    '  listCRUDTaggedEntity: [CRUDTaggedEntity!]!\n' +
+    '}\n'+
+    '\n' +
+    'schema {\n' +
+    '  query : Query\n' +
+    '  mutation : Mutation\n' +
+    '}', $resLong);
+}

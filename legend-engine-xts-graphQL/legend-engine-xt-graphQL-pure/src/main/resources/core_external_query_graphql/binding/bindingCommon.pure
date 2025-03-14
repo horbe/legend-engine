@@ -124,3 +124,8 @@ function meta::external::query::graphQL::binding::hasGraphQLStereotype(t: Any[1]
       | false
   )
 }
+
+function meta::external::query::graphQL::binding::hasCRUDStereotype(t: Any[1]): Boolean[1]
+{
+  $t->hasGraphQLStereotype('CRUD')
+}
